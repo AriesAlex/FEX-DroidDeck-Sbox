@@ -171,6 +171,8 @@ ArchHelpers::Context::ContextBackup* SignalDelegator::StoreThreadState(FEXCore::
   Context->UContextLocation = 0;
   Context->SigInfoLocation = 0;
   Context->InSyscallInfo = 0;
+  Context->ClearedSyscallInfo = 0;
+  Context->GuestSignalMask = 0;
 
   // Store fault to top status and then reset it
   Context->FaultToTopAndGeneratedException = Thread->CurrentFrame->SynchronousFaultData.FaultToTopAndGeneratedException;
@@ -178,6 +180,8 @@ ArchHelpers::Context::ContextBackup* SignalDelegator::StoreThreadState(FEXCore::
 
   return Context;
 }
+
+static void CheckForPendingSignals(const FEX::HLE::ThreadStateObject* Thread);
 
 void SignalDelegator::RestoreThreadState(FEXCore::Core::InternalThreadState* Thread, void* ucontext, RestoreType Type) {
   uint64_t OldSP {};
@@ -256,6 +260,29 @@ void SignalDelegator::RestoreThreadState(FEXCore::Core::InternalThreadState* Thr
 
   // Restore host state
   ArchHelpers::Context::RestoreContext(ucontext, Context);
+  // 0008 + 0041: every sigreturn restores the interrupted syscall spill marker.
+  Thread->CurrentFrame->InSyscallInfo = (Context->Flags & ArchHelpers::Context::ContextFlags::CONTEXT_FLAG_SYSCALLINFO_CLEARED) ?
+                                          Context->ClearedSyscallInfo : Context->InSyscallInfo;
+
+  {
+    auto ThreadObject = FEX::HLE::ThreadManager::GetStateObjectFromFEXCoreThread(Thread);
+    if (Type != RestoreType::TYPE_PAUSE) {
+      // StonkGuy signal-mask fixes 0007/0020: restore the mask left in the guest frame.
+      uint64_t NewGuestMask = Context->GuestSignalMask;
+      if (Is64BitMode && Context->UContextLocation) {
+        auto* GuestUContext = reinterpret_cast<FEXCore::x86_64::ucontext_t*>(Context->UContextLocation);
+        NewGuestMask = GuestUContext->uc_sigmask.val[0] & ~((1ULL << (SIGKILL - 1)) | (1ULL << (SIGSTOP - 1)));
+      }
+      ThreadObject->SignalInfo.CurrentSignalMask.Val = NewGuestMask;
+      // Apply handler edits to the host return mask as well, keeping FEX's own signals available.
+      uint64_t HostMask = NewGuestMask;
+      for (size_t i = 0; i < MAX_SIGNALS; ++i) {
+        if (HostHandlers[i + 1].Required.load(std::memory_order_relaxed)) HostMask &= ~(1ULL << i);
+      }
+      memcpy(&static_cast<ucontext_t*>(ucontext)->uc_sigmask, &HostMask, sizeof(HostMask));
+      CheckForPendingSignals(ThreadObject);
+    }
+  }
 
   // Reset the guest state
   memcpy(&Thread->CurrentFrame->State, &Context->GuestState, sizeof(FEXCore::Core::CPUState));
@@ -284,6 +311,7 @@ void SignalDelegator::RestoreThreadState(FEXCore::Core::InternalThreadState* Thr
 bool SignalDelegator::HandleDispatcherGuestSignal(FEXCore::Core::InternalThreadState* Thread, int Signal, void* info, void* ucontext,
                                                   GuestSigAction* GuestAction, stack_t* GuestStack) {
   auto ContextBackup = StoreThreadState(Thread, Signal, ucontext);
+  ContextBackup->GuestSignalMask = FEX::HLE::ThreadManager::GetStateObjectFromFEXCoreThread(Thread)->SignalInfo.CurrentSignalMask.Val;
 
   auto Frame = Thread->CurrentFrame;
 
@@ -321,6 +349,12 @@ bool SignalDelegator::HandleDispatcherGuestSignal(FEXCore::Core::InternalThreadS
     ContextBackup->InSyscallInfo = Thread->CurrentFrame->InSyscallInfo;
     Thread->CurrentFrame->InSyscallInfo = 0;
   } else {
+    // A handler entered from a C++ syscall must start with its own live-register state.
+    if (Thread->CurrentFrame->InSyscallInfo != 0) {
+      ContextBackup->ClearedSyscallInfo = Thread->CurrentFrame->InSyscallInfo;
+      ContextBackup->Flags |= ArchHelpers::Context::ContextFlags::CONTEXT_FLAG_SYSCALLINFO_CLEARED;
+      Thread->CurrentFrame->InSyscallInfo = 0;
+    }
     if (!IsAddressInDispatcher(OldPC)) {
       // This is likely to cause issues but in some cases it isn't fatal
       // This can also happen if we have put a signal on hold, then we just reenabled the signal
@@ -690,7 +724,15 @@ void SignalDelegator::HandleGuestSignal(FEX::HLE::ThreadStateObject* ThreadObjec
   } else {
     if (Handler.GuestHandler &&
         Handler.GuestHandler(Thread, Signal, &SigInfo, UContext, &Handler.GuestAction, &ThreadObject->SignalInfo.GuestAltStack)) {
-      uint64_t NewMask = GetNewSigMask(Signal);
+      // Linux blocks the interrupted mask, sa_mask, and (unless NODEFER) the signal.
+      uint64_t GuestNew = ThreadObject->SignalInfo.CurrentSignalMask.Val | Handler.GuestAction.sa_mask.Val;
+      if (!(Handler.GuestAction.sa_flags & SA_NODEFER)) GuestNew |= 1ULL << (Signal - 1);
+      GuestNew &= ~((1ULL << (SIGKILL - 1)) | (1ULL << (SIGSTOP - 1)));
+      ThreadObject->SignalInfo.CurrentSignalMask.Val = GuestNew;
+      uint64_t NewMask = GuestNew;
+      for (size_t i = 0; i < MAX_SIGNALS; ++i) {
+        if (HostHandlers[i + 1].Required.load(std::memory_order_relaxed)) NewMask &= ~(1ULL << i);
+      }
 
       // Update our host signal mask so we don't hit race conditions with signals
       // This allows us to maintain the expected signal mask through the guest signal handling and then all the way back again

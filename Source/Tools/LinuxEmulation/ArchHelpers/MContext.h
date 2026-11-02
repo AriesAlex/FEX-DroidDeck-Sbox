@@ -20,6 +20,7 @@ namespace FEX::ArchHelpers::Context {
 
 enum ContextFlags : uint32_t {
   CONTEXT_FLAG_INJIT = (1U << 0),
+  CONTEXT_FLAG_SYSCALLINFO_CLEARED = (1U << 1),
 };
 
 #if defined(ASSERTIONS_ENABLED) && ASSERTIONS_ENABLED
@@ -40,7 +41,9 @@ struct X86ContextBackup {
   FEXCore::x86_64::_libc_fpstate FPRState;
   uint64_t sa_mask;
   uint16_t InSyscallInfo;
+  uint16_t ClearedSyscallInfo;
   bool FaultToTopAndGeneratedException;
+  uint64_t GuestSignalMask;
 
   // Guest state
   int Signal;
@@ -67,7 +70,9 @@ struct ArmContextBackup {
   __uint128_t FPRs[32];
   uint64_t sa_mask;
   uint16_t InSyscallInfo;
+  uint16_t ClearedSyscallInfo;
   bool FaultToTopAndGeneratedException;
+  uint64_t GuestSignalMask;
 
   // Guest state
   int Signal;
