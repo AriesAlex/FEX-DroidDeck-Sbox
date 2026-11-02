@@ -24,13 +24,11 @@ Existing compatible thunks are linked from `/usr/local` by default; change
 `FEX_EXISTING_THUNK_PREFIX` if necessary. This is a native ARM64 build recipe,
 not an x86-64-to-ARM64 cross-compilation recipe.
 
-The original tested binary used build directory `/root/sbox-diagnostics/fex-build`
-and compiled-in prefix `/root/sbox-diagnostics/fex-fixed`. Changing paths or
-compiler versions can change binary hashes. The source/flags, not a promise
-of bit-identical output, are reproduced by this script.
+Changing build paths or compiler versions can change binary hashes. The script
+reproduces the tested source and flags; it does not promise bit-identical output.
 
 GitHub workflow files have been removed from this fork branch. Builds and
-release uploads are manual; this document does not authorize or perform a push.
+release uploads are manual.
 
 ## Install the Steam compatibility tool manually
 

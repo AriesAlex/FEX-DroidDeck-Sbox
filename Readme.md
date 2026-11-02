@@ -1,3 +1,9 @@
+> **Experimental DroidDeck / S&box fork.** This branch adds Linux signal fixes to
+> the DroidDeck FEX-2610 r8 baseline. See [manual build, installation and known
+> limits](docs/sbox-compat/README.md). CoreCLR currently requires
+> `DOTNET_INTERNAL_ThreadSuspendInjection=0`. Automatic GitHub Actions are disabled;
+> release binaries are built manually. This is not yet a stable gameplay release.
+
 [中文](https://github.com/FEX-Emu/FEX/blob/main/docs/Readme_CN.md)
 # FEX: Emulate x86 Programs on ARM64
 FEX allows you to run x86 applications on ARM64 Linux devices, similar to qemu-user and box64.
