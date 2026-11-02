@@ -32,6 +32,30 @@ of bit-identical output, are reproduced by this script.
 GitHub workflow files have been removed from this fork branch. Builds and
 release uploads are manual; this document does not authorize or perform a push.
 
+## Install the Steam compatibility tool manually
+
+```sh
+python3 Scripts/install-sbox-compat.py /absolute/isolated-prefix \
+  "$HOME/.local/share/Steam/compatibilitytools.d/sbox-fex-compat"
+```
+
+The installer adapts the current DroidDeck `droiddeck-fex-tool` wrapper and
+preserves its GPU, taskset and SteamVR handling. The Python entry point loads
+`/usr/local/bin/droiddeck-fex` with `runpy`, replaces `fex_install` in the actual
+function globals, and retains the maintained runtime/thunk setup logic. The
+binary and server come from this isolated tool; final guest environment values
+are applied after shared/per-game configuration. `DOTNET_GCRegionRange` keeps
+the shared value, with `800000000` as the fallback.
+
+Configuration, cache, status and server IPC are separate for this tool. Its
+launcher skips the global FEX updater. It does not edit the original FEX or
+DroidDeck launcher, select a Steam mapping, or restart Steam. Existing tool
+installations are backed up under Steam's `sbox-fex-compat-backups` directory,
+outside the compatibility-tool discovery directory.
+
+Installed tool ID: `sbox-fex-compat`.
+Display name: `S&box FEX (signal compatibility)`.
+
 ## Tested runtime settings
 
 ```sh
