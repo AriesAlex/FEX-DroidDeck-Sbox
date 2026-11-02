@@ -840,6 +840,5 @@ bool GenerateThunkLibsActionFactory::runInvocation(std::shared_ptr<clang::Compil
 
   const bool Success = Compiler.ExecuteAction(Action);
 
-  Files->clearStatCache();
   return Success;
 }

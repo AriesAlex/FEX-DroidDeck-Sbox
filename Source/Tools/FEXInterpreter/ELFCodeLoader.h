@@ -640,7 +640,7 @@ public:
     AuxVariables.emplace_back(auxv_t {16, HWCap});                        // AT_HWCAP
     AuxVariables.emplace_back(auxv_t {26, HWCap2});                       // AT_HWCAP2
     AuxVariables.emplace_back(auxv_t {51, CalculateSignalStackSize()});   // AT_MINSIGSTKSZ
-    AuxPlatform = &AuxVariables.emplace_back(auxv_t {24, ~0ULL});         // AT_PLATFORM
+    AuxPlatform = &AuxVariables.emplace_back(auxv_t {15, ~0ULL});         // AT_PLATFORM
     AuxExecFN = &AuxVariables.emplace_back(auxv_t {AT_EXECFN, ~0ULL});    // AT_EXECFN
 
     if (Is64BitMode()) {
