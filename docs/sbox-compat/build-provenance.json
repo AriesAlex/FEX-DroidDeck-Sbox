@@ -1,0 +1,9 @@
+{
+  "upstream_base": "14c92681f4d62cf84d901460e0358de09c8847a7",
+  "droiddeck_base_commit": "e9b42a1c5e73e8ef3b073b74e6d893ed0c17cec1",
+  "signal_commit": "fff3af9566446b1de63de6bce959c24c49e0184a",
+  "tested_binary_sha256": "92241bed16fd8a46179fa9ff2a748f433e8762b8f326c85bcbdedfda371abb51",
+  "compiler": "Ubuntu clang 21.1.8 (6ubuntu1)",
+  "cmake": "4.2.3",
+  "ninja": "1.13.2"
+}
