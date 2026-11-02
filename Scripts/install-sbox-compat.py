@@ -15,13 +15,15 @@ import time
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("prefix", type=Path, help="Manually built FEX prefix containing bin/FEX and bin/FEXServer")
-    parser.add_argument("destination", type=Path, help="Steam compatibilitytools.d/sbox-fex-compat directory")
+    parser.add_argument("destination", type=Path, help="Steam compatibilitytools.d/.sbox-fex-compat directory")
     parser.add_argument("--droiddeck-tool", type=Path,
                         default=Path.home() / ".local/share/Steam/compatibilitytools.d/droiddeck-fex")
     args = parser.parse_args()
     source = Path(__file__).resolve().parent.parent
     prefix = args.prefix.resolve()
     destination = args.destination.absolute()
+    if not destination.name.startswith("."):
+        parser.error("Use a hidden destination such as .sbox-fex-compat so DroidDeck preserves this Linux tool")
     template = (args.droiddeck_tool / "droiddeck-fex-tool").read_text()
     if not template.startswith("#!/bin/bash\n"):
         parser.error("DroidDeck wrapper shell format changed; review before adapting")

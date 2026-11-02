@@ -34,7 +34,7 @@ release uploads are manual.
 
 ```sh
 python3 Scripts/install-sbox-compat.py /absolute/isolated-prefix \
-  "$HOME/.local/share/Steam/compatibilitytools.d/sbox-fex-compat"
+  "$HOME/.local/share/Steam/compatibilitytools.d/.sbox-fex-compat"
 ```
 
 The installer adapts the current DroidDeck `droiddeck-fex-tool` wrapper and
@@ -50,6 +50,19 @@ launcher skips the global FEX updater. It does not edit the original FEX or
 DroidDeck launcher, select a Steam mapping, or restart Steam. Existing tool
 installations are backed up under Steam's `sbox-fex-compat-backups` directory,
 outside the compatibility-tool discovery directory.
+
+The hidden directory name is required on DroidDeck. Steam discovers the tool
+there normally, while DroidDeck's automatic Proton adoption skips hidden
+folders. A visible directory is rewritten as Windows/Proton at session startup,
+which prevents the native Linux launch. Keep the internal tool ID below unchanged.
+If upgrading an older visible installation, close Steam, move that directory to
+`.sbox-fex-compat`, restore its original Linux manifests with the installer, and
+restart Steam. Do not keep both directories registered.
+
+A [reference fix for DroidDeck's registration helper](droiddeck-preserve-linux-tools.patch)
+also records the underlying bug. Editing the installed helper alone is temporary:
+DroidDeck reinstalls it when rebuilding the environment, so the hidden directory
+is the persistent installation method used here.
 
 Installed tool ID: `sbox-fex-compat`.
 Display name: `S&box FEX (signal compatibility)`.

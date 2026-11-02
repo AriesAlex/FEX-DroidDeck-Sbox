@@ -1,0 +1,42 @@
+--- a/steam-compatibility
++++ b/steam-compatibility
+@@ -666,6 +666,16 @@
+     return None
+ 
+ 
++def is_linux_tool(tool_dir):
++    try:
++        with open(os.path.join(tool_dir, "compatibilitytool.vdf"), encoding="utf-8", errors="replace") as source:
++            tokens = tokenize(source.read())
++    except OSError:
++        return False
++    return any(tokens[i].lower() == '\"from_oslist\"' and tokens[i + 1].lower() == '\"linux\"'
++               for i in range(len(tokens) - 1))
++
++
+ def adopt_extras(tools):
+     """Makes every other Proton in compatibilitytools.d launchable here, and returns the tool names
+     to leave alone in CompatToolMapping - the whole point of installing one is to pick it per game,
+@@ -681,6 +691,10 @@
+         tool_dir = os.path.join(tools, entry)
+         manifest = os.path.join(tool_dir, "toolmanifest.vdf")
+         if not os.path.isdir(tool_dir) or not os.path.isfile(manifest):
++            continue
++        if is_linux_tool(tool_dir):
++            compat_vdf = os.path.join(tool_dir, "compatibilitytool.vdf")
++            adopted[first_key(compat_vdf, ["compatibilitytools", "compat_tools"]) or entry] = entry
+             continue
+         original = manifest + ORIGINAL_SUFFIX
+         legacy = manifest + LEGACY_ORIGINAL_SUFFIX
+@@ -1147,7 +1161,10 @@
+             entries = []
+         for entry in entries:
+             tool_dir = os.path.join(tools, entry)
+-            if entry in dict(OWN_TOOLS) or not any(os.path.isfile(os.path.join(tool_dir, w)) for w in (EXTRA_WRAPPER, LEGACY_EXTRA_WRAPPER)):
++            if entry in dict(OWN_TOOLS) or entry == FEX_TOOL:
++                continue
++            if not (is_linux_tool(tool_dir) or any(os.path.isfile(os.path.join(tool_dir, w))
++                                                 for w in (EXTRA_WRAPPER, LEGACY_EXTRA_WRAPPER))):
+                 continue
+             extras[first_key(os.path.join(tool_dir, "compatibilitytool.vdf"), ["compatibilitytools", "compat_tools"]) or entry] = entry
+     for name, entry in sorted(extras.items()):
