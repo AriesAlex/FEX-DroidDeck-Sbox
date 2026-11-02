@@ -51,6 +51,7 @@ def main():
         (staging / "sbox-fex-tool").chmod(0o755)
         shutil.copy2(source / "Packaging/sbox-compat/sbox-fex-launch.py", staging / "sbox-fex-launch.py")
         (staging / "sbox-fex-launch.py").chmod(0o755)
+        shutil.copy2(source / "Packaging/sbox-compat/memory_guard.py", staging / "memory_guard.py")
         (staging / "compatibilitytool.vdf").write_text('''"compatibilitytools"
 {
   "compat_tools"
@@ -79,6 +80,7 @@ def main():
         (staging / "installed-files.sha256.json").write_text(json.dumps(hashes, indent=2) + "\n")
         subprocess.run(["bash", "-n", str(staging / "sbox-fex-tool")], check=True)
         compile((staging / "sbox-fex-launch.py").read_text(), "sbox-fex-launch.py", "exec")
+        compile((staging / "memory_guard.py").read_text(), "memory_guard.py", "exec")
         backup = None
         if destination.exists() or destination.is_symlink():
             backup_root = destination.parent.parent / "sbox-fex-compat-backups"

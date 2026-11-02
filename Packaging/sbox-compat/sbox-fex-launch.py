@@ -66,6 +66,12 @@ def load_backend(tool_dir):
 
 
 def main(argv):
+    if argv[:1] == ["--memory-guard-child"]:
+        return load_backend(Path(__file__).resolve().parent)["main"](argv[1:])
+    if argv[:1] == ["steam"]:
+        from memory_guard import run_guarded
+        return run_guarded([sys.executable, __file__, "--memory-guard-child", *argv],
+                           Path(__file__).resolve().parent / "state/memory-guard.log")
     return load_backend(Path(__file__).resolve().parent)["main"](argv)
 
 

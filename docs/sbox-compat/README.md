@@ -69,6 +69,18 @@ Display name: `S&box FEX (signal compatibility)`.
 
 ## Tested runtime settings
 
+Steam launches include a userspace memory guard. It checks the launched process
+every 250 ms and kills only its separate process group if RSS plus swap reaches
+6 GiB, or system `MemAvailable` falls below 1.5 GiB. Samples and the termination
+reason are written to `state/memory-guard.log`. Steam Stop signals are forwarded;
+shutdown has a three-second deadline. Command-line Relay operations are not
+guarded.
+
+This is a protective supervisor, not a kernel allocation limit: GPU allocations
+may not all appear in process RSS, and Android can still kill the app before a
+poll. This device does not delegate its memory cgroups to the PRoot app. DroidDeck's
+own RAM-cap setting requests compression rather than enforcing a memory limit.
+
 ```sh
 export DOTNET_GCRegionRange=800000000
 export DOTNET_EnableWriteXorExecute=0
